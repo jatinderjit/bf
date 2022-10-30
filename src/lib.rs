@@ -41,8 +41,34 @@ impl Program {
                         self.pointer -= 1;
                     }
                 }
-                b'[' => todo!(),
-                b']' => todo!(),
+                b'[' => {
+                    if self.memory[self.pointer] == 0 {
+                        let mut loops: usize = 1;
+                        // TODO: handle invalid loops
+                        while loops > 0 {
+                            self.program_counter += 1;
+                            if self.source[self.program_counter] == b'[' {
+                                loops += 1;
+                            } else if self.source[self.program_counter] == b']' {
+                                loops -= 1;
+                            }
+                        }
+                    } else {
+                        self.program_counter += 1;
+                    }
+                }
+                b']' => {
+                    let mut loops: usize = 1;
+                    // TODO: handle invalid loops
+                    while loops > 0 {
+                        self.program_counter -= 1;
+                        if self.source[self.program_counter] == b'[' {
+                            loops -= 1;
+                        } else if self.source[self.program_counter] == b']' {
+                            loops += 1;
+                        }
+                    }
+                }
                 _ => {}
             };
             self.program_counter += 1;

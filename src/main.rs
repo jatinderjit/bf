@@ -6,7 +6,7 @@ fn main() -> Result<(), Error> {
     source[197] = b'.';
     source[198] = b'<';
     source[199] = b'.'; // Should print 'ca'
-    let mut program = Program::new(source);
+    let mut program = Program::new(vec![b'+', b'[', b',', b'.', b']']);
     program.run()?;
     return Ok(());
 }
