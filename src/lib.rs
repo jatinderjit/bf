@@ -31,15 +31,19 @@ impl Program {
                 b'.' => {
                     stdout().write(&self.memory[self.pointer..self.pointer + 1])?;
                 }
-                b'+' => self.memory[self.pointer] += 1, //TODO: handle underflow
-                b'-' => self.memory[self.pointer] -= 1, //TODO: handle overflow
-                b'>' => self.pointer += 1,              // TODO: handle memory overflow
+                b'+' => {
+                    self.memory[self.pointer] = self.memory[self.pointer].wrapping_add(1);
+                }
+                b'-' => {
+                    self.memory[self.pointer] = self.memory[self.pointer].wrapping_sub(1);
+                }
+                b'>' => {
+                    self.pointer += 1;
+                    assert!(self.pointer < RAM_SIZE);
+                }
                 b'<' => {
-                    if self.pointer == 0 {
-                        self.pointer = self.source.len() - 1;
-                    } else {
-                        self.pointer -= 1;
-                    }
+                    assert!(self.pointer != 0);
+                    self.pointer -= 1;
                 }
                 b'[' => {
                     if self.memory[self.pointer] == 0 {
@@ -53,19 +57,19 @@ impl Program {
                                 loops -= 1;
                             }
                         }
-                    } else {
-                        self.program_counter += 1;
                     }
                 }
                 b']' => {
-                    let mut loops: usize = 1;
-                    // TODO: handle invalid loops
-                    while loops > 0 {
-                        self.program_counter -= 1;
-                        if self.source[self.program_counter] == b'[' {
-                            loops -= 1;
-                        } else if self.source[self.program_counter] == b']' {
-                            loops += 1;
+                    if self.memory[self.pointer] > 0 {
+                        let mut loops: usize = 1;
+                        // TODO: handle invalid loops
+                        while loops > 0 {
+                            self.program_counter -= 1;
+                            if self.source[self.program_counter] == b'[' {
+                                loops -= 1;
+                            } else if self.source[self.program_counter] == b']' {
+                                loops += 1;
+                            }
                         }
                     }
                 }
