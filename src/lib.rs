@@ -1,4 +1,7 @@
+mod tokens;
+
 use std::io::{self, stdin, stdout, Read, Write};
+use tokens::Token;
 
 const RAM_SIZE: usize = 30000;
 
@@ -8,72 +11,74 @@ pub struct Program {
     memory: [u8; RAM_SIZE],
     pointer: usize,
     program_counter: usize,
-    source: Vec<u8>,
+    tokens: Vec<Token>,
 }
 
 impl Program {
-    pub fn new(source: Vec<u8>) -> Self {
+    pub fn new(source: &[u8]) -> Self {
         Self {
             memory: [0; RAM_SIZE],
             pointer: 0,
             program_counter: 0,
-            source,
+            tokens: source.iter().map(|c| (*c).into()).collect(),
         }
     }
 
     pub fn run(&mut self) -> Result<(), Error> {
+        use tokens::Token::*;
+
         loop {
-            if self.program_counter == self.source.len() {
+            if self.program_counter == self.tokens.len() {
                 return Ok(());
             }
-            match self.source[self.program_counter] {
-                b',' => stdin().read_exact(&mut self.memory[self.pointer..self.pointer + 1])?,
-                b'.' => {
+            match self.tokens[self.program_counter] {
+                Input => stdin().read_exact(&mut self.memory[self.pointer..self.pointer + 1])?,
+                Output => {
                     stdout().write(&self.memory[self.pointer..self.pointer + 1])?;
                 }
-                b'+' => {
+                Increment => {
                     self.memory[self.pointer] = self.memory[self.pointer].wrapping_add(1);
                 }
-                b'-' => {
+                Decrement => {
                     self.memory[self.pointer] = self.memory[self.pointer].wrapping_sub(1);
                 }
-                b'>' => {
+                MoveRight => {
                     self.pointer += 1;
                     assert!(self.pointer < RAM_SIZE);
                 }
-                b'<' => {
+                MoveLeft => {
                     assert!(self.pointer != 0);
                     self.pointer -= 1;
                 }
-                b'[' => {
+                LoopStart => {
                     if self.memory[self.pointer] == 0 {
                         let mut loops: usize = 1;
                         // TODO: handle invalid loops
                         while loops > 0 {
                             self.program_counter += 1;
-                            if self.source[self.program_counter] == b'[' {
+                            if self.tokens[self.program_counter] == LoopStart {
                                 loops += 1;
-                            } else if self.source[self.program_counter] == b']' {
+                            } else if self.tokens[self.program_counter] == LoopEnd {
                                 loops -= 1;
                             }
                         }
                     }
                 }
-                b']' => {
+                LoopEnd => {
                     if self.memory[self.pointer] > 0 {
                         let mut loops: usize = 1;
                         // TODO: handle invalid loops
                         while loops > 0 {
                             self.program_counter -= 1;
-                            if self.source[self.program_counter] == b'[' {
+                            if self.tokens[self.program_counter] == LoopStart {
                                 loops -= 1;
-                            } else if self.source[self.program_counter] == b']' {
+                            } else if self.tokens[self.program_counter] == LoopEnd {
                                 loops += 1;
                             }
                         }
                     }
                 }
-                _ => {}
+                Comment => {}
             };
             self.program_counter += 1;
         }
