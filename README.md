@@ -1,6 +1,6 @@
-# Brainfuck
+# BF
 
-Brainfuck Interpreter.
+[BF](https://en.wikipedia.org/wiki/Brainfuck) Interpreter.
 
 Usage:
 
