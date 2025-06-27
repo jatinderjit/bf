@@ -14,26 +14,25 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn from_tokens(tokens: &[Token]) -> Vec<Instruction> {
-        let instructions = tokens.iter().filter_map(|token| match token {
-            Token::Increment => Some(Add(1)),
-            Token::Decrement => Some(Subtract(1)),
-            Token::MoveRight => Some(MoveRight(1)),
-            Token::MoveLeft => Some(MoveLeft(1)),
-            Token::Input => Some(Input),
-            Token::Output => Some(Output),
+    pub fn from_tokens<T: Iterator<Item = Token>>(tokens: T) -> Vec<Instruction> {
+        let instructions = tokens.map(|token| match token {
+            Token::Increment => Add(1),
+            Token::Decrement => Subtract(1),
+            Token::MoveRight => MoveRight(1),
+            Token::MoveLeft => MoveLeft(1),
+            Token::Input => Input,
+            Token::Output => Output,
             // Set an invalid value until the actual matching tokens are
             // computed.
-            Token::LoopStart => Some(LoopStart(tokens.len())),
-            Token::LoopEnd => Some(LoopEnd(tokens.len())),
-            Token::Comment => None,
+            Token::LoopStart => LoopStart(0),
+            Token::LoopEnd => LoopEnd(0),
         });
         let mut instructions = Self::squash_arithmetic(instructions);
         Self::optimize_loops(&mut instructions);
         instructions
     }
 
-    fn squash_arithmetic(instructions: impl Iterator<Item = Instruction>) -> Vec<Instruction> {
+    fn squash_arithmetic<T: Iterator<Item = Instruction>>(instructions: T) -> Vec<Instruction> {
         let mut squashed = Vec::new();
         let mut sum: i32 = 0;
         for instruction in instructions {
@@ -54,7 +53,7 @@ impl Instruction {
         squashed
     }
 
-    fn optimize_loops(instructions: &mut Vec<Instruction>) {
+    fn optimize_loops(instructions: &mut [Instruction]) {
         let mut stack = Vec::new();
         let mut pairs = Vec::new();
         for (i, instruction) in instructions.iter().enumerate() {

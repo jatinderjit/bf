@@ -18,12 +18,13 @@ pub struct Program {
 
 impl Program {
     pub fn new(source: &[u8]) -> Self {
-        let tokens: Vec<Token> = source.iter().map(|c| (*c).into()).collect();
+        let tokens = source.iter().filter_map(|c| Token::try_from(*c).ok());
+        let instructions = Instruction::from_tokens(tokens);
         Self {
             memory: [0; RAM_SIZE],
             pointer: 0,
             program_counter: 0,
-            instructions: Instruction::from_tokens(&tokens),
+            instructions,
         }
     }
 

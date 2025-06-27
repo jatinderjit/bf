@@ -8,23 +8,26 @@ pub enum Token {
     Output,
     LoopStart,
     LoopEnd,
-    Comment,
 }
 
-impl From<u8> for Token {
-    fn from(value: u8) -> Self {
+pub struct Comment;
+
+impl TryFrom<u8> for Token {
+    type Error = Comment;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         use Token::*;
 
         match value {
-            b'+' => Increment,
-            b'-' => Decrement,
-            b'>' => MoveRight,
-            b'<' => MoveLeft,
-            b',' => Input,
-            b'.' => Output,
-            b'[' => LoopStart,
-            b']' => LoopEnd,
-            _ => Comment,
+            b'+' => Ok(Increment),
+            b'-' => Ok(Decrement),
+            b'>' => Ok(MoveRight),
+            b'<' => Ok(MoveLeft),
+            b',' => Ok(Input),
+            b'.' => Ok(Output),
+            b'[' => Ok(LoopStart),
+            b']' => Ok(LoopEnd),
+            _ => Err(Comment),
         }
     }
 }
