@@ -46,9 +46,6 @@ impl Program {
                 Add(num) => {
                     self.memory[self.pointer] = self.memory[self.pointer].wrapping_add(num);
                 }
-                Subtract(num) => {
-                    self.memory[self.pointer] = self.memory[self.pointer].wrapping_sub(num);
-                }
                 MoveRight(jump) => {
                     self.pointer += jump;
                     assert!(self.pointer < RAM_SIZE);

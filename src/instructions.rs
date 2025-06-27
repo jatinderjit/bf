@@ -7,7 +7,6 @@ use Instruction::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Instruction {
     Add(u8),
-    Subtract(u8),
     MoveRight(usize),
     MoveLeft(usize),
     Input,
@@ -20,7 +19,7 @@ impl Instruction {
     pub fn from_tokens<T: Iterator<Item = Token>>(tokens: T) -> Result<Vec<Instruction>, Error> {
         let instructions = tokens.map(|token| match token.ty {
             TokenType::Increment => Add(1),
-            TokenType::Decrement => Subtract(1),
+            TokenType::Decrement => Add(255u8), // since it wraps!
             TokenType::MoveRight => MoveRight(1),
             TokenType::MoveLeft => MoveLeft(1),
             TokenType::Input => Input,
@@ -35,20 +34,22 @@ impl Instruction {
     }
 
     fn squash_arithmetic<T: Iterator<Item = Instruction>>(instructions: T) -> Vec<Instruction> {
+        use Instruction::*;
+
         let mut squashed = Vec::new();
-        let mut sum: i32 = 0;
+        let mut last = Input; // Anything apart from `Add`
         for instruction in instructions {
-            match instruction {
-                Add(x) => sum += x as i32,
-                Subtract(x) => sum -= x as i32,
+            match (instruction, last) {
+                (Add(x), Add(y)) => {
+                    last = Add(x.wrapping_add(y));
+
+                    // We can safely unwrap, because we know that the last instruction
+                    // was an `Add` instruction. Hence this is not empty.
+                    *squashed.last_mut().unwrap() = last;
+                }
                 _ => {
-                    if sum > 0 {
-                        squashed.push(Add((sum % 256) as u8));
-                    } else if sum < 0 {
-                        squashed.push(Subtract((-sum % 256) as u8));
-                    }
-                    sum = 0;
                     squashed.push(instruction);
+                    last = instruction;
                 }
             }
         }
@@ -72,7 +73,7 @@ impl Instruction {
                 _ => {}
             }
         }
-        if let Some((_, src_pos)) = stack.pop() {
+        if let Some((_, src_pos)) = stack.first() {
             return Err(Error::UnbalancedLoopError('[', src_pos + 1));
         }
         for ((start, _), end) in pairs {
