@@ -27,12 +27,12 @@ impl Instruction {
             TokenType::LoopStart => LoopStart(token.pos),
             TokenType::LoopEnd => LoopEnd(token.pos),
         });
-        let mut instructions = Self::squash_arithmetic(instructions);
+        let mut instructions = Self::squash_instructions(instructions);
         Self::optimize_loops(&mut instructions)?;
         Ok(instructions)
     }
 
-    fn squash_arithmetic<T: Iterator<Item = Instruction>>(instructions: T) -> Vec<Instruction> {
+    fn squash_instructions<T: Iterator<Item = Instruction>>(instructions: T) -> Vec<Instruction> {
         use Instruction::*;
 
         let mut squashed = Vec::new();
@@ -44,6 +44,10 @@ impl Instruction {
 
                     // We can safely unwrap, because we know that the last instruction
                     // was an `Add` instruction. Hence this is not empty.
+                    *squashed.last_mut().unwrap() = last;
+                }
+                (Jump(x), Jump(y)) => {
+                    last = Jump(x + y);
                     *squashed.last_mut().unwrap() = last;
                 }
                 _ => {
