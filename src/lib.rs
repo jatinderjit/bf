@@ -1,13 +1,13 @@
+mod error;
 mod instructions;
 mod tokens;
 
+pub use error::Error;
 use instructions::Instruction;
-use std::io::{self, stdin, stdout, Read, Write};
+use std::io::{stdin, stdout, Read, Write};
 use tokens::Token;
 
 const RAM_SIZE: usize = 30000;
-
-pub type Error = io::Error;
 
 pub struct Program {
     memory: [u8; RAM_SIZE],
@@ -17,15 +17,18 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(source: &[u8]) -> Self {
-        let tokens = source.iter().filter_map(|c| Token::try_from(*c).ok());
-        let instructions = Instruction::from_tokens(tokens);
-        Self {
+    pub fn compile(source: &[u8]) -> Result<Self, Error> {
+        let tokens = source
+            .iter()
+            .enumerate()
+            .filter_map(|(pos, char)| Token::try_from((pos, *char)).ok());
+        let instructions = Instruction::from_tokens(tokens)?;
+        Ok(Self {
             memory: [0; RAM_SIZE],
             pointer: 0,
             program_counter: 0,
             instructions,
-        }
+        })
     }
 
     pub fn run(&mut self) -> Result<(), Error> {
@@ -38,7 +41,7 @@ impl Program {
             match self.instructions[self.program_counter] {
                 Input => stdin().read_exact(&mut self.memory[self.pointer..self.pointer + 1])?,
                 Output => {
-                    stdout().write(&self.memory[self.pointer..self.pointer + 1])?;
+                    stdout().write_all(&self.memory[self.pointer..self.pointer + 1])?;
                 }
                 Add(num) => {
                     self.memory[self.pointer] = self.memory[self.pointer].wrapping_add(num);

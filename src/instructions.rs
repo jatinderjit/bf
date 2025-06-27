@@ -1,4 +1,7 @@
-use crate::tokens::Token;
+use crate::{
+    error::Error,
+    tokens::{Token, TokenType},
+};
 use Instruction::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -14,22 +17,21 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn from_tokens<T: Iterator<Item = Token>>(tokens: T) -> Vec<Instruction> {
-        let instructions = tokens.map(|token| match token {
-            Token::Increment => Add(1),
-            Token::Decrement => Subtract(1),
-            Token::MoveRight => MoveRight(1),
-            Token::MoveLeft => MoveLeft(1),
-            Token::Input => Input,
-            Token::Output => Output,
-            // Set an invalid value until the actual matching tokens are
-            // computed.
-            Token::LoopStart => LoopStart(0),
-            Token::LoopEnd => LoopEnd(0),
+    pub fn from_tokens<T: Iterator<Item = Token>>(tokens: T) -> Result<Vec<Instruction>, Error> {
+        let instructions = tokens.map(|token| match token.ty {
+            TokenType::Increment => Add(1),
+            TokenType::Decrement => Subtract(1),
+            TokenType::MoveRight => MoveRight(1),
+            TokenType::MoveLeft => MoveLeft(1),
+            TokenType::Input => Input,
+            TokenType::Output => Output,
+            // Set source position until the actual matching token is computed.
+            TokenType::LoopStart => LoopStart(token.pos),
+            TokenType::LoopEnd => LoopEnd(token.pos),
         });
         let mut instructions = Self::squash_arithmetic(instructions);
-        Self::optimize_loops(&mut instructions);
-        instructions
+        Self::optimize_loops(&mut instructions)?;
+        Ok(instructions)
     }
 
     fn squash_arithmetic<T: Iterator<Item = Instruction>>(instructions: T) -> Vec<Instruction> {
@@ -53,25 +55,30 @@ impl Instruction {
         squashed
     }
 
-    fn optimize_loops(instructions: &mut [Instruction]) {
+    /// This should be called after `squash_arithmetic` (or other optimization
+    /// that could change the size of the instructions vector)
+    fn optimize_loops(instructions: &mut [Instruction]) -> Result<(), Error> {
         let mut stack = Vec::new();
         let mut pairs = Vec::new();
         for (i, instruction) in instructions.iter().enumerate() {
             match instruction {
-                LoopStart(_) => stack.push(i),
-                LoopEnd(_) => {
-                    let start = stack.pop().expect("Invalid loop closure");
+                LoopStart(src_pos) => stack.push((i, *src_pos)),
+                LoopEnd(src_pos) => {
+                    let start = stack
+                        .pop()
+                        .ok_or(Error::UnbalancedLoopError(']', src_pos + 1))?;
                     pairs.push((start, i));
                 }
                 _ => {}
             }
         }
-        if !stack.is_empty() {
-            panic!("Unclosed loop");
+        if let Some((_, src_pos)) = stack.pop() {
+            return Err(Error::UnbalancedLoopError('[', src_pos + 1));
         }
-        for (start, end) in pairs {
+        for ((start, _), end) in pairs {
             instructions[start] = LoopStart(end);
             instructions[end] = LoopEnd(start);
         }
+        Ok(())
     }
 }

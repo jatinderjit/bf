@@ -1,5 +1,11 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Token {
+pub struct Token {
+    pub ty: TokenType,
+    pub pos: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TokenType {
     Increment,
     Decrement,
     MoveRight,
@@ -12,22 +18,23 @@ pub enum Token {
 
 pub struct Comment;
 
-impl TryFrom<u8> for Token {
+impl TryFrom<(usize, u8)> for Token {
     type Error = Comment;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        use Token::*;
+    fn try_from((pos, char): (usize, u8)) -> Result<Self, Self::Error> {
+        use TokenType::*;
 
-        match value {
-            b'+' => Ok(Increment),
-            b'-' => Ok(Decrement),
-            b'>' => Ok(MoveRight),
-            b'<' => Ok(MoveLeft),
-            b',' => Ok(Input),
-            b'.' => Ok(Output),
-            b'[' => Ok(LoopStart),
-            b']' => Ok(LoopEnd),
-            _ => Err(Comment),
-        }
+        let ty = match char {
+            b'+' => Increment,
+            b'-' => Decrement,
+            b'>' => MoveRight,
+            b'<' => MoveLeft,
+            b',' => Input,
+            b'.' => Output,
+            b'[' => LoopStart,
+            b']' => LoopEnd,
+            _ => Err(Comment)?,
+        };
+        Ok(Token { ty, pos })
     }
 }
