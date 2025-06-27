@@ -46,13 +46,16 @@ impl Program {
                 Add(num) => {
                     self.memory[self.pointer] = self.memory[self.pointer].wrapping_add(num);
                 }
-                MoveRight(jump) => {
-                    self.pointer += jump;
-                    assert!(self.pointer < RAM_SIZE);
-                }
-                MoveLeft(jump) => {
-                    assert!(self.pointer >= jump);
-                    self.pointer -= jump;
+                Jump(jump) => {
+                    if jump > 0 {
+                        let jump = jump as usize;
+                        self.pointer += jump;
+                        assert!(self.pointer < RAM_SIZE);
+                    } else {
+                        let jump = (-jump) as usize;
+                        assert!(self.pointer >= jump);
+                        self.pointer -= jump;
+                    }
                 }
                 LoopStart(end) => {
                     if self.memory[self.pointer] == 0 {

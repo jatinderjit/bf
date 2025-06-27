@@ -7,8 +7,7 @@ use Instruction::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Instruction {
     Add(u8),
-    MoveRight(usize),
-    MoveLeft(usize),
+    Jump(isize),
     Input,
     Output,
     LoopStart(usize),
@@ -20,8 +19,8 @@ impl Instruction {
         let instructions = tokens.map(|token| match token.ty {
             TokenType::Increment => Add(1),
             TokenType::Decrement => Add(255u8), // since it wraps!
-            TokenType::MoveRight => MoveRight(1),
-            TokenType::MoveLeft => MoveLeft(1),
+            TokenType::MoveRight => Jump(1),
+            TokenType::MoveLeft => Jump(-1),
             TokenType::Input => Input,
             TokenType::Output => Output,
             // Set source position until the actual matching token is computed.
